@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tax-id-validation
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: tax-id-validation
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
