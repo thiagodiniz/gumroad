@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ping-delivery
+data:
+  PORT: "8080"
+  APP_ENV: staging
+  LOG_LEVEL: info
+  OPEN_TIMEOUT: 5s
+  READ_TIMEOUT: 5s
+  MAX_REDIRECTS: "3"
+  SHUTDOWN_TIMEOUT: 20s

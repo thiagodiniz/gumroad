@@ -63,22 +63,24 @@ class PostToIndividualPingEndpointWorker
       options[:request_proc] = ->(request) { request.basic_auth(user, pass) }
     end
 
+    if PingDeliveryServiceClient.enabled?
+      outcome = PingDeliveryServiceClient.new.deliver(url: post_url, body:, content_type:)
+      unless outcome.nil?
+        if outcome.error?
+          Rails.logger.info("[#{outcome.error_class}] PostToIndividualPingEndpointWorker error content_type=#{content_type} user_id=#{user_id} retry_count=#{retry_count}")
+          record_delivery(post_url:, user_id:, ping:, retry_count:, error_class: outcome.error_class)
+          enqueue_retry(post_url, params, content_type, user_id, retry_count, ping) if outcome.retryable
+        else
+          handle_response_code(outcome.status, post_url:, params:, content_type:, user_id:, retry_count:, ping:)
+        end
+        return
+      end
+    end
+
     # SsrfFilter validates the resolved IPs and connects to the exact IP it validated,
     # closing the DNS-rebinding TOCTOU a separate validate-then-connect leaves open.
     response = SsrfFilter.post(post_url, options)
-
-    if response.is_a?(Net::HTTPRedirection)
-      Rails.logger.info("PostToIndividualPingEndpointWorker exhausted redirect limit response=#{response.code} content_type=#{content_type} user_id=#{user_id}")
-      record_delivery(post_url:, user_id:, ping:, retry_count:, response_code: response.code)
-      return
-    end
-
-    Rails.logger.info("PostToIndividualPingEndpointWorker response=#{response.code} content_type=#{content_type} user_id=#{user_id}")
-    record_delivery(post_url:, user_id:, ping:, retry_count:, response_code: response.code, succeeded: response.is_a?(Net::HTTPSuccess))
-
-    unless response.is_a?(Net::HTTPSuccess)
-      enqueue_retry(post_url, params, content_type, user_id, retry_count, ping) if ERROR_CODES_TO_RETRY.include?(response.code.to_i)
-    end
+    handle_response_code(response.code.to_i, post_url:, params:, content_type:, user_id:, retry_count:, ping:)
 
   # Must precede the blanket INTERNET_EXCEPTIONS rescue: SsrfFilter::Error is in that
   # list, so UnresolvedHostname would otherwise drop, and PrivateIPAddress must keep
@@ -94,6 +96,22 @@ class PostToIndividualPingEndpointWorker
   end
 
   private
+    def handle_response_code(code, post_url:, params:, content_type:, user_id:, retry_count:, ping:)
+      if (300..399).cover?(code)
+        Rails.logger.info("PostToIndividualPingEndpointWorker exhausted redirect limit response=#{code} content_type=#{content_type} user_id=#{user_id}")
+        record_delivery(post_url:, user_id:, ping:, retry_count:, response_code: code)
+        return
+      end
+
+      succeeded = (200..299).cover?(code)
+      Rails.logger.info("PostToIndividualPingEndpointWorker response=#{code} content_type=#{content_type} user_id=#{user_id}")
+      record_delivery(post_url:, user_id:, ping:, retry_count:, response_code: code, succeeded:)
+
+      return if succeeded
+
+      enqueue_retry(post_url, params, content_type, user_id, retry_count, ping) if ERROR_CODES_TO_RETRY.include?(code)
+    end
+
     def encode_brackets(key)
       key.to_s.gsub(/[\[\]]/) { |char| URI.encode_www_form_component(char) }
     end

@@ -5,10 +5,11 @@ separately (independent scaling, different runtime, isolation from the Rails dep
 extracted into a Go service that lives in this repository under `services/<name>` and deploys to
 Kubernetes from `services/<name>/deploy/k8s`.
 
-| Service                                                                    | Replaces                                               | Rails entry point              |
-| -------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------ |
-| [`services/tax-id-validation`](../../services/tax-id-validation/README.md) | `RegionalVatIdValidationService` + registry validators | `TaxIdValidationServiceClient` |
-| [`services/oembed`](../../services/oembed/README.md)                       | `OEmbedFinder` + the ruby-oembed provider registry     | `OEmbedServiceClient`          |
+| Service                                                                    | Replaces                                                  | Rails entry point              |
+| -------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------ |
+| [`services/tax-id-validation`](../../services/tax-id-validation/README.md) | `RegionalVatIdValidationService` + registry validators    | `TaxIdValidationServiceClient` |
+| [`services/oembed`](../../services/oembed/README.md)                       | `OEmbedFinder` + the ruby-oembed provider registry        | `OEmbedServiceClient`          |
+| [`services/ping-delivery`](../../services/ping-delivery/README.md)         | `PostToIndividualPingEndpointWorker`'s SSRF-filtered POST | `PingDeliveryServiceClient`    |
 
 Every extraction follows the [extraction playbook](extraction-playbook.md). The short version:
 the Rails code keeps working exactly as before, a client is added behind a feature flag and a
