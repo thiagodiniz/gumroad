@@ -9,7 +9,7 @@ resources:
 # CI pins newTag to the git SHA it built (kustomize edit set image ...).
 images:
   - name: gumroad/tax-id-validation
-    newName: gumroad/tax-id-validation
+    newName: ghcr.io/thiagodiniz/tax-id-validation
     newTag: latest
 
 patches:

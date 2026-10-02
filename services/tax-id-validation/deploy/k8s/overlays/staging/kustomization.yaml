@@ -8,7 +8,7 @@ resources:
 
 images:
   - name: gumroad/tax-id-validation
-    newName: gumroad/tax-id-validation
+    newName: ghcr.io/thiagodiniz/tax-id-validation
     newTag: latest
 
 patches:

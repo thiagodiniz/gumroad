@@ -17,7 +17,7 @@ service has carried production traffic.
 
 ## Rollout sequence for a service
 
-1. Build and push the image (CI does this on merge), create the Kubernetes Secret, `kubectl apply -k
+1. Build and push the image (CI pushes `ghcr.io/<owner>/<service>:<sha>` on merge to `main`), create the Kubernetes Secret, `kubectl apply -k
 services/<name>/deploy/k8s/overlays/staging`.
 2. Set `<NAME>_SERVICE_URL` (and token) in the Rails environment. The flag stays off, so nothing changes.
 3. `Flipper.enable_percentage_of_time(:<flag>, 5)` (the client checks the flag without an actor, so

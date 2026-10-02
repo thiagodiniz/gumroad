@@ -1,5 +1,5 @@
 SERVICE    := tax-id-validation
-IMAGE_REPO ?= gumroad/$(SERVICE)
+IMAGE_REPO ?= ghcr.io/thiagodiniz/$(SERVICE)
 IMAGE_TAG  ?= $(shell git rev-parse --short=12 HEAD)
 IMAGE      := $(IMAGE_REPO):$(IMAGE_TAG)
 GO         ?= go

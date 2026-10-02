@@ -52,7 +52,7 @@ upstream failures are never cached.
 ```
 make lint test          # gofmt + go vet + go test -race
 make run                # http://localhost:8080
-make docker-build       # gumroad/tax-id-validation:<git sha>
+make docker-build       # ghcr.io/thiagodiniz/tax-id-validation:<git sha>
 make k8s-render OVERLAY=staging
 ```
 
@@ -63,6 +63,7 @@ Point Rails at a local instance with `TAX_ID_VALIDATION_SERVICE_URL=http://local
 
 `deploy/k8s` is a kustomize base with `staging` and `production` overlays (Deployment, Service,
 ConfigMap, HPA, PDB, NetworkPolicy). Secrets are created out of band — see
-`deploy/k8s/base/secret.example.yaml`. CI builds the image in `.github/workflows/go-services.yml`;
-pin the tag in the overlay (`kustomize edit set image gumroad/tax-id-validation=...:<sha>`) and
+`deploy/k8s/base/secret.example.yaml`. CI builds the image in `.github/workflows/go-services.yml` and, on `main`, pushes it to
+`ghcr.io/thiagodiniz/tax-id-validation:<sha>` with `GITHUB_TOKEN`;
+pin the tag in the overlay (`kustomize edit set image gumroad/tax-id-validation=ghcr.io/thiagodiniz/tax-id-validation:<sha>`) and
 `kubectl apply -k deploy/k8s/overlays/<env>`.
