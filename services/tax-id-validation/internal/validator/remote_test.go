@@ -214,3 +214,24 @@ func TestEUVat(t *testing.T) {
 		t.Fatalf("expected no VIES calls, got %d", calls-before)
 	}
 }
+
+func TestNon2xxBodiesAreNotDecoded(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("<html>not found</html>"))
+	}))
+	defer srv.Close()
+
+	for name, run := range map[string]func() (bool, error){
+		"tax_id_pro": func() (bool, error) {
+			return NewTaxIDPro(srv.Client(), srv.URL, "key").Validate(context.Background(), "123", "JP")
+		},
+		"qst": func() (bool, error) { return NewQST(srv.Client(), srv.URL).Validate(context.Background(), "123") },
+	} {
+		valid, err := run()
+		if err != nil || valid {
+			t.Fatalf("%s: valid=%v err=%v, want invalid verdict without upstream error", name, valid, err)
+		}
+	}
+}

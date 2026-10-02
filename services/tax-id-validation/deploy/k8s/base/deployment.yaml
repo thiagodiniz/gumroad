@@ -67,5 +67,6 @@ spec:
               port: http
             periodSeconds: 10
             failureThreshold: 3
-          # Let in-flight VIES lookups (up to VIES_TIMEOUT) finish before SIGKILL.
-      terminationGracePeriodSeconds: 40
+      # VIES_TIMEOUT (30s) + SHUTDOWN_TIMEOUT (20s), so an in-flight lookup that started just
+      # before SIGTERM can still answer before SIGKILL.
+      terminationGracePeriodSeconds: 55

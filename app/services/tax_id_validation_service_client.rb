@@ -43,7 +43,11 @@ class TaxIdValidationServiceClient
       return nil
     end
 
-    response.parsed_response["valid"] == true
+    verdict = response.parsed_response.is_a?(Hash) ? response.parsed_response["valid"] : nil
+    return verdict if verdict == true || verdict == false
+
+    Rails.logger.warn("TaxIdValidationServiceClient: malformed response for country=#{country_code} body=#{response.body.to_s.truncate(200)}")
+    nil
   rescue *NETWORK_ERRORS => e
     Rails.logger.warn("TaxIdValidationServiceClient: #{e.class}: #{e.message}")
     nil

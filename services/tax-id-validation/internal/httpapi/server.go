@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/antiwork/gumroad/services/tax-id-validation/internal/validator"
@@ -67,6 +68,10 @@ func (s *Server) validate(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestBody))
 	if err != nil || json.Unmarshal(body, &in) != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid_json"})
+		return
+	}
+	if strings.TrimSpace(in.TaxID) == "" {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid_request"})
 		return
 	}
 

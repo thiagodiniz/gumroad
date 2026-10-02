@@ -4,6 +4,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -77,6 +78,9 @@ func Load() (Config, error) {
 	}
 	if c.ShutdownTimeout, err = duration("SHUTDOWN_TIMEOUT", 20*time.Second); err != nil {
 		return c, err
+	}
+	if c.Environment == "production" && c.InternalToken == "" {
+		return c, errors.New("INTERNAL_AUTH_TOKEN is required when APP_ENV=production")
 	}
 	return c, nil
 }

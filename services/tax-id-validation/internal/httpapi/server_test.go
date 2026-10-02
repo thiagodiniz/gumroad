@@ -65,6 +65,11 @@ func TestValidateEndpoint(t *testing.T) {
 		t.Fatalf("status=%d body=%v", resp.StatusCode, out)
 	}
 
+	resp, out = post(t, srv.URL+"/v1/validations", "", `{"tax_id":"  ","country_code":"AU"}`)
+	if resp.StatusCode != http.StatusBadRequest || out["error"] != "invalid_request" {
+		t.Fatalf("blank tax_id: status=%d body=%v", resp.StatusCode, out)
+	}
+
 	r.err = validator.ErrUpstream
 	r.res = validator.Result{Validator: "abn"}
 	resp, out = post(t, srv.URL+"/v1/validations", "", `{"tax_id":"x","country_code":"AU"}`)

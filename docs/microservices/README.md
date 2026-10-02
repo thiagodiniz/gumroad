@@ -20,8 +20,9 @@ service has carried production traffic.
 1. Build and push the image (CI does this on merge), create the Kubernetes Secret, `kubectl apply -k
 services/<name>/deploy/k8s/overlays/staging`.
 2. Set `<NAME>_SERVICE_URL` (and token) in the Rails environment. The flag stays off, so nothing changes.
-3. `Feature.activate_percentage(:<flag>, 5)` → watch the service's error rate and the Rails
-   fallback warnings (`<Client>: ...` in the Rails logs).
+3. `Flipper.enable_percentage_of_time(:<flag>, 5)` (the client checks the flag without an actor, so
+   `activate_percentage`/percentage-of-actors would never match) → watch the service's error rate
+   and the Rails fallback warnings (`<Client>: ...` in the Rails logs).
 4. Ramp to 100 %. Leave the in-process implementation in place for at least one release.
 5. Delete the Ruby implementation, the flag, and the fallback path; the client becomes the only route.
 

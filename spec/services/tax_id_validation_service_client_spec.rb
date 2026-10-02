@@ -56,6 +56,13 @@ describe TaxIdValidationServiceClient do
       expect(client.validate("1234", country_code: "AU")).to be_nil
     end
 
+    it "returns nil when a 200 response has no boolean verdict" do
+      WebMock.stub_request(:post, "#{base_url}/v1/validations")
+        .to_return(status: 200, body: { validator: "abn" }.to_json, headers: { "Content-Type" => "application/json" })
+
+      expect(client.validate("1234", country_code: "AU")).to be_nil
+    end
+
     it "returns nil on network errors" do
       WebMock.stub_request(:post, "#{base_url}/v1/validations").to_timeout
 

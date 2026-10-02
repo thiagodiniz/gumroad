@@ -31,21 +31,21 @@ upstream failures are never cached.
 
 ## Configuration
 
-| Variable                                          | Default          | Notes                                                              |
-| ------------------------------------------------- | ---------------- | ------------------------------------------------------------------ |
-| `PORT`                                            | `8080`           |                                                                    |
-| `APP_ENV`                                         | `development`    | `production` selects the IRAS production endpoint                  |
-| `LOG_LEVEL`                                       | `info`           | `debug`, `info`, `warn`, `error`                                   |
-| `INTERNAL_AUTH_TOKEN`                             | unset            | When set, `/v1/validations` requires a matching `X-Internal-Token` |
-| `CACHE_TTL`                                       | `10m`            | Go duration or bare seconds                                        |
-| `UPSTREAM_TIMEOUT`                                | `5s`             | Vatstack, IRAS, Tax ID Pro, Revenu Québec                          |
-| `VIES_TIMEOUT`                                    | `30s`            | Matches `VatValidationService::VIES_LOOKUP_TIMEOUT_SECONDS`        |
-| `SHUTDOWN_TIMEOUT`                                | `20s`            | Drain window on SIGTERM                                            |
-| `VATSTACK_API_KEY`, `VATSTACK_URL`                |                  | Same key as the Rails `VATSTACK_API_KEY`                           |
-| `IRAS_API_ID`, `IRAS_API_SECRET`, `IRAS_ENDPOINT` |                  | Same credentials as Rails                                          |
-| `TAX_ID_PRO_API_KEY`, `TAX_ID_PRO_URL`            |                  | Same key as Rails                                                  |
-| `REVENU_QUEBEC_URL`, `VIES_URL`                   |                  | Override for tests / sandboxes                                     |
-| `VAT_REGISTRATION_NUMBER`                         | `GB-...` default | Requester VAT number sent to VIES                                  |
+| Variable                                          | Default          | Notes                                                                                                  |
+| ------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `PORT`                                            | `8080`           |                                                                                                        |
+| `APP_ENV`                                         | `development`    | `production` selects the IRAS production endpoint                                                      |
+| `LOG_LEVEL`                                       | `info`           | `debug`, `info`, `warn`, `error`                                                                       |
+| `INTERNAL_AUTH_TOKEN`                             | unset            | When set, `/v1/validations` requires a matching `X-Internal-Token`; required when `APP_ENV=production` |
+| `CACHE_TTL`                                       | `10m`            | Go duration or bare seconds                                                                            |
+| `UPSTREAM_TIMEOUT`                                | `5s`             | Vatstack, IRAS, Tax ID Pro, Revenu Québec                                                              |
+| `VIES_TIMEOUT`                                    | `30s`            | Matches `VatValidationService::VIES_LOOKUP_TIMEOUT_SECONDS`                                            |
+| `SHUTDOWN_TIMEOUT`                                | `20s`            | Drain window on SIGTERM                                                                                |
+| `VATSTACK_API_KEY`, `VATSTACK_URL`                |                  | Same key as the Rails `VATSTACK_API_KEY`                                                               |
+| `IRAS_API_ID`, `IRAS_API_SECRET`, `IRAS_ENDPOINT` |                  | Same credentials as Rails                                                                              |
+| `TAX_ID_PRO_API_KEY`, `TAX_ID_PRO_URL`            |                  | Same key as Rails                                                                                      |
+| `REVENU_QUEBEC_URL`, `VIES_URL`                   |                  | Override for tests / sandboxes                                                                         |
+| `VAT_REGISTRATION_NUMBER`                         | `GB-...` default | Requester VAT number sent to VIES                                                                      |
 
 ## Develop
 
