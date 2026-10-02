@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tax-id-validation
+data:
+  PORT: "8080"
+  APP_ENV: staging
+  LOG_LEVEL: info
+  CACHE_TTL: 10m
+  UPSTREAM_TIMEOUT: 5s
+  VIES_TIMEOUT: 30s
+  SHUTDOWN_TIMEOUT: 20s

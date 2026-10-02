@@ -1,0 +1,75 @@
+name: Go services
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "services/**"
+      - ".github/workflows/go-services.yml"
+  pull_request:
+    paths:
+      - "services/**"
+      - ".github/workflows/go-services.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [tax-id-validation]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/${{ matrix.service }}/go.mod
+          cache: false
+      - run: make lint
+      - run: make test
+      - name: Render Kubernetes manifests
+        run: |
+          for overlay in deploy/k8s/overlays/*/; do
+            kubectl kustomize "$overlay" > /dev/null
+          done
+      - name: Build image
+        run: docker build --build-arg VERSION=${{ github.sha }} -t gumroad/${{ matrix.service }}:${{ github.sha }} .
+
+  publish:
+    name: publish ${{ matrix.service }}
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [tax-id-validation]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        # GHCR requires a lowercase repository path; the overlays' newName must match this.
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.service }}"
+          docker build --build-arg VERSION=${{ github.sha }} -t "$image:${{ github.sha }}" -t "$image:latest" .
+          docker push --all-tags "$image"

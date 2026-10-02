@@ -123,6 +123,22 @@ services:
         fi;
       done < /fixture-files-public.txt; echo \"Fixture files copied successfully\"; exit 0; "
 
+  # Opt in with `docker compose --profile tax-id-validation up`; Rails only uses it when
+  # TAX_ID_VALIDATION_SERVICE_URL=http://localhost:8080 and the feature flag are set.
+  tax-id-validation:
+    profiles: ["tax-id-validation"]
+    build:
+      context: ../services/tax-id-validation
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - APP_ENV=development
+      - LOG_LEVEL=debug
+      - VATSTACK_API_KEY=${VATSTACK_API_KEY:-}
+      - IRAS_API_ID=${IRAS_API_ID:-}
+      - IRAS_API_SECRET=${IRAS_API_SECRET:-}
+      - TAX_ID_PRO_API_KEY=${TAX_ID_PRO_API_KEY:-}
+
 volumes:
   elasticsearch7data:
   mysql_data:

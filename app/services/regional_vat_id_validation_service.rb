@@ -12,29 +12,39 @@ class RegionalVatIdValidationService
   def process
     return false if vat_id.blank?
 
-    if country_code == Compliance::Countries::AUS.alpha2
-      AbnValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::SGP.alpha2
-      GstValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::CAN.alpha2 && state_code == QUEBEC
-      QstValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::NOR.alpha2
-      MvaValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::BHR.alpha2
-      TrnValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::KEN.alpha2
-      KraPinValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::NGA.alpha2
-      FirsTinValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::TZA.alpha2
-      TraTinValidationService.new(vat_id).process
-    elsif country_code == Compliance::Countries::OMN.alpha2
-      OmanVatNumberValidationService.new(vat_id).process
-    elsif Compliance::Countries::COUNTRIES_THAT_COLLECT_TAX_ON_ALL_PRODUCTS.include?(country_code) ||
-          Compliance::Countries::COUNTRIES_THAT_COLLECT_TAX_ON_DIGITAL_PRODUCTS_WITH_TAX_ID_PRO_VALIDATION.include?(country_code)
-      TaxIdValidationService.new(vat_id, country_code).process
-    else
-      VatValidationService.new(vat_id).process
+    if TaxIdValidationServiceClient.enabled?
+      remote_result = TaxIdValidationServiceClient.new.validate(vat_id, country_code:, state_code:)
+      return remote_result unless remote_result.nil?
     end
+
+    validate_in_process
   end
+
+  private
+    def validate_in_process
+      if country_code == Compliance::Countries::AUS.alpha2
+        AbnValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::SGP.alpha2
+        GstValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::CAN.alpha2 && state_code == QUEBEC
+        QstValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::NOR.alpha2
+        MvaValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::BHR.alpha2
+        TrnValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::KEN.alpha2
+        KraPinValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::NGA.alpha2
+        FirsTinValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::TZA.alpha2
+        TraTinValidationService.new(vat_id).process
+      elsif country_code == Compliance::Countries::OMN.alpha2
+        OmanVatNumberValidationService.new(vat_id).process
+      elsif Compliance::Countries::COUNTRIES_THAT_COLLECT_TAX_ON_ALL_PRODUCTS.include?(country_code) ||
+            Compliance::Countries::COUNTRIES_THAT_COLLECT_TAX_ON_DIGITAL_PRODUCTS_WITH_TAX_ID_PRO_VALIDATION.include?(country_code)
+        TaxIdValidationService.new(vat_id, country_code).process
+      else
+        VatValidationService.new(vat_id).process
+      end
+    end
 end
