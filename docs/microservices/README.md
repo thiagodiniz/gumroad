@@ -8,6 +8,7 @@ Kubernetes from `services/<name>/deploy/k8s`.
 | Service                                                                    | Replaces                                               | Rails entry point              |
 | -------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------ |
 | [`services/tax-id-validation`](../../services/tax-id-validation/README.md) | `RegionalVatIdValidationService` + registry validators | `TaxIdValidationServiceClient` |
+| [`services/oembed`](../../services/oembed/README.md)                       | `OEmbedFinder` + the ruby-oembed provider registry     | `OEmbedServiceClient`          |
 
 Every extraction follows the [extraction playbook](extraction-playbook.md). The short version:
 the Rails code keeps working exactly as before, a client is added behind a feature flag and a
