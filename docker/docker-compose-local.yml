@@ -151,6 +151,18 @@ services:
       - APP_ENV=development
       - LOG_LEVEL=debug
 
+  # Opt in with `docker compose --profile ping-delivery up`; Rails only uses it when
+  # PING_DELIVERY_SERVICE_URL=http://localhost:8082 and the feature flag are set.
+  ping-delivery:
+    profiles: ["ping-delivery"]
+    build:
+      context: ../services/ping-delivery
+    ports:
+      - "127.0.0.1:8082:8080"
+    environment:
+      - APP_ENV=development
+      - LOG_LEVEL=debug
+
 volumes:
   elasticsearch7data:
   mysql_data:

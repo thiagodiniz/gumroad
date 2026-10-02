@@ -198,6 +198,109 @@ describe PostToIndividualPingEndpointWorker do
     PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "c" => 17 })
   end
 
+  describe "delegation to the ping delivery service" do
+    let(:client) { instance_double(PingDeliveryServiceClient) }
+
+    def outcome(**attrs)
+      PingDeliveryServiceClient::Outcome.new(**attrs)
+    end
+
+    before do
+      allow(PingDeliveryServiceClient).to receive(:enabled?).and_return(true)
+      allow(PingDeliveryServiceClient).to receive(:new).and_return(client)
+    end
+
+    it "sends the encoded payload to the service instead of posting in-process" do
+      expect(client).to receive(:deliver)
+        .with(url: "http://notification.com", body: "a=1", content_type: Mime[:url_encoded_form].to_s)
+        .and_return(outcome(status: 200))
+      expect(SsrfFilter).not_to receive(:post)
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "a" => 1 })
+
+      expect(PostToIndividualPingEndpointWorker.jobs.size).to eq(0)
+    end
+
+    it "retries 50x statuses reported by the service" do
+      allow(client).to receive(:deliver).and_return(outcome(status: 503))
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "q" => 47 })
+
+      expect(PostToIndividualPingEndpointWorker.jobs.size).to eq(1)
+      expect(PostToIndividualPingEndpointWorker.jobs.first["args"]).to eq(["http://notification.com", { "q" => 47, "retry_count" => 1 }, Mime[:url_encoded_form].to_s, nil])
+    end
+
+    it "does not retry other statuses reported by the service" do
+      allow(client).to receive(:deliver).and_return(outcome(status: 417))
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "q" => 47 })
+
+      expect(PostToIndividualPingEndpointWorker.jobs.size).to eq(0)
+    end
+
+    it "logs and drops the delivery when the service reports an exhausted redirect limit" do
+      allow(client).to receive(:deliver).and_return(outcome(status: 302))
+      messages = []
+      allow(Rails.logger).to receive(:info) { |message| messages << message }
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "q" => 47 })
+
+      expect(messages).to include("PostToIndividualPingEndpointWorker exhausted redirect limit response=302 content_type=#{Mime[:url_encoded_form]} user_id=")
+      expect(PostToIndividualPingEndpointWorker.jobs.size).to eq(0)
+    end
+
+    it "re-enqueues itself with backoff on a retryable error reported by the service" do
+      allow(client).to receive(:deliver).and_return(outcome(error_class: "Net::ReadTimeout", retryable: true))
+      messages = []
+      allow(Rails.logger).to receive(:info) { |message| messages << message }
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "q" => 47 })
+
+      expect(messages).to include("[Net::ReadTimeout] PostToIndividualPingEndpointWorker error content_type=#{Mime[:url_encoded_form]} user_id= retry_count=0")
+      expect(PostToIndividualPingEndpointWorker.jobs.size).to eq(1)
+    end
+
+    it "drops the delivery on a permanent error reported by the service" do
+      allow(client).to receive(:deliver).and_return(outcome(error_class: "SsrfFilter::PrivateIPAddress", retryable: false))
+      messages = []
+      allow(Rails.logger).to receive(:info) { |message| messages << message }
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "q" => 47 })
+
+      expect(messages).to include("[SsrfFilter::PrivateIPAddress] PostToIndividualPingEndpointWorker error content_type=#{Mime[:url_encoded_form]} user_id= retry_count=0")
+      expect(PostToIndividualPingEndpointWorker.jobs.size).to eq(0)
+    end
+
+    it "records the service's verdict for the sale" do
+      seller = create(:user)
+      purchase = create(:free_purchase, seller:, link: create(:product, user: seller))
+      ping = { "purchase_id" => purchase.id, "subscription_id" => nil, "resource_name" => ResourceSubscription::SALE_RESOURCE_NAME }
+      allow(client).to receive(:deliver).and_return(outcome(error_class: "SsrfFilter::UnresolvedHostname", retryable: true))
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "a" => 1 }, Mime[:url_encoded_form].to_s, seller.id, ping)
+
+      delivery = PingDelivery.last
+      expect(delivery.error_class).to eq("SsrfFilter::UnresolvedHostname")
+      expect(delivery.succeeded).to be(false)
+      expect(delivery.attempt).to eq(1)
+    end
+
+    it "falls back to posting in-process when the service is unavailable" do
+      allow(client).to receive(:deliver).and_return(nil)
+      expect(SsrfFilter).to receive(:post).with("http://notification.com", post_options(body: "a=1")).and_return(@ok_response)
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "a" => 1 })
+    end
+
+    it "does not call the service when it is disabled" do
+      allow(PingDeliveryServiceClient).to receive(:enabled?).and_return(false)
+      expect(PingDeliveryServiceClient).not_to receive(:new)
+      expect(SsrfFilter).to receive(:post).and_return(@ok_response)
+
+      PostToIndividualPingEndpointWorker.new.perform("http://notification.com", { "a" => 1 })
+    end
+  end
+
   describe "logging" do
     it "does not log the endpoint URL or payload" do
       expect(SsrfFilter).to receive(:post).with("https://notification.com", post_options(body: "a=1")).and_return(@ok_response)

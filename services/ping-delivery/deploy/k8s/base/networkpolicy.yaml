@@ -1,0 +1,25 @@
+# Only the Rails web and Sidekiq pods may call the service; everything else is denied.
+# Adjust the podSelector labels to match how the Rails deployment is labelled in the
+# target cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ping-delivery
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ping-delivery
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: gumroad
+              app.kubernetes.io/component: web
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: gumroad
+              app.kubernetes.io/component: sidekiq
+      ports:
+        - port: 8080
+          protocol: TCP
