@@ -8,6 +8,15 @@ class OEmbedFinder
 
   # Providers are registered once at boot, in config/initializers/oembed.rb.
   def self.embeddable_from_url(new_url, maxwidth = AssetPreview::DEFAULT_DISPLAY_WIDTH)
+    if OEmbedServiceClient.enabled?
+      remote = OEmbedServiceClient.new.lookup(new_url, maxwidth:)
+      return remote.embeddable unless remote.nil?
+    end
+
+    embeddable_from_url_in_process(new_url, maxwidth)
+  end
+
+  def self.embeddable_from_url_in_process(new_url, maxwidth)
     res = begin
       OEmbed::Providers.get(new_url, maxwidth:)
     rescue StandardError

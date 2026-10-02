@@ -107,6 +107,47 @@ describe OEmbedFinder do
   end
 
   # Snapshot identities because the process-wide registry is shared across examples.
+  describe "delegation to the oEmbed service" do
+    let(:client) { instance_double(OEmbedServiceClient) }
+    let(:url) { "https://vimeo.com/71588076" }
+
+    before do
+      allow(OEmbedServiceClient).to receive(:enabled?).and_return(true)
+      allow(OEmbedServiceClient).to receive(:new).and_return(client)
+    end
+
+    it "returns the service's embeddable without querying providers in-process" do
+      embeddable = { html: "<iframe></iframe>", info: { "width" => 670 } }
+      expect(client).to receive(:lookup).with(url, maxwidth: 670).and_return(OEmbedServiceClient::Result.new(embeddable))
+      expect(OEmbed::Providers).not_to receive(:get)
+
+      expect(OEmbedFinder.embeddable_from_url(url)).to eq(embeddable)
+    end
+
+    it "returns nil when the service says the URL is not embeddable, without querying providers" do
+      expect(client).to receive(:lookup).with(url, maxwidth: 300).and_return(OEmbedServiceClient::Result.new(nil))
+      expect(OEmbed::Providers).not_to receive(:get)
+
+      expect(OEmbedFinder.embeddable_from_url(url, 300)).to be_nil
+    end
+
+    it "falls back to the in-process lookup when the service is unavailable" do
+      expect(client).to receive(:lookup).and_return(nil)
+      response = double(video?: true, html: "<iframe></iframe>", fields: { "width" => 670 })
+      expect(OEmbed::Providers).to receive(:get).with(url, maxwidth: 670).and_return(response)
+
+      expect(OEmbedFinder.embeddable_from_url(url)).to eq(html: "<iframe></iframe>", info: { "width" => 670 })
+    end
+
+    it "does not call the service when it is disabled" do
+      allow(OEmbedServiceClient).to receive(:enabled?).and_return(false)
+      expect(OEmbedServiceClient).not_to receive(:new)
+      allow(OEmbed::Providers).to receive(:get).and_raise(StandardError)
+
+      expect(OEmbedFinder.embeddable_from_url(url)).to be_nil
+    end
+  end
+
   describe "provider registry" do
     let(:unmatched_url) { "https://example.com/no-registered-provider-matches-this" }
 
